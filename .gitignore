@@ -1,2 +1,4 @@
 build
 fullfeed.db
+dist
+*.egg-info
