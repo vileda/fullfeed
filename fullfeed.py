@@ -85,7 +85,7 @@ def fetch_articles(feed, rule):
             if hasattr(e, 'response') and e.response:
                 return None
 
-    return json.dumps(jsonobj)
+    return jsonobj
 
 
 def get_user(user, session):
@@ -98,6 +98,22 @@ def get_user(user, session):
         u = session.query(User).filter_by(name=user).one()
 
     return u
+
+
+def fetch_feed(url):
+    req = tornado.httpclient.HTTPRequest(
+        url=url,
+        method="GET",
+        follow_redirects=False,
+        allow_nonstandard_methods=True
+    )
+
+    client = tornado.httpclient.HTTPClient()
+    try:
+        response = client.fetch(req)
+        return response.body
+    except tornado.httpclient.HTTPError as e:
+        return e
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -113,46 +129,19 @@ class MainHandler(tornado.web.RequestHandler):
                 session.commit()
         feeds = session.query(Feed).filter_by(user_id=u.id)
         session.close()
-        self.render("index.html", user=u, feeds=map(lambda f: f.url, feeds))
+        feed = fetch_feed(url)
+        articles = fetch_articles(feed, None)
+        self.render("index.html", user=u, feeds=map(lambda f: f.url, feeds), fetched_feed=articles)
 
 
 class ProxyHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self, url):
+        self.set_status(200)
+        self.set_header('Content-Type', 'application/json')
         rule = self.get_query_argument('rule', None)
-
-        def handle_response(response):
-            if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
-                self.set_status(500)
-                self.write('Internal server error:\n' + str(response.error))
-            else:
-                self.set_status(response.code)
-                for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
-                    v = response.headers.get(header)
-                    if v:
-                        self.set_header(header, v)
-                self.set_header('Content-Type', 'application/json')
-                if response.body:
-                    self.write(fetch_articles(response.body, rule))
-            self.finish()
-
-        req = tornado.httpclient.HTTPRequest(
-            url=url,
-            method="GET",
-            follow_redirects=False,
-            allow_nonstandard_methods=True
-        )
-
-        client = tornado.httpclient.AsyncHTTPClient()
-        try:
-            client.fetch(req, handle_response)
-        except tornado.httpclient.HTTPError as e:
-            if hasattr(e, 'response') and e.response:
-                handle_response(e.response)
-            else:
-                self.set_status(500)
-                self.write('Internal server error:\n' + str(e))
-                self.finish()
+        self.write(json.dumps(fetch_articles(fetch_feed(url), rule)))
+        self.finish()
 
 
 def main():

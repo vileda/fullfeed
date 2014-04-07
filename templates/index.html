@@ -13,7 +13,11 @@
       <option value="{{ feed }}">{{ feed }}</option>
     {% end %}
 </select>
-<ul id="news"></ul>
+<ul id="news">
+    {% for entry in fetched_feed %}
+        <li>{{ entry['content'] }}</li>
+    {% end %}
+</ul>
 <script>
     $(function() {
         var fullfeed_user = '{{ user.name }}';
@@ -28,7 +32,6 @@
                 });
         };
         $('#feeds').on('change', fetch_feed);
-        fetch_feed();
     });
 </script>
 </body>
