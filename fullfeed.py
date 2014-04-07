@@ -136,6 +136,15 @@ class FeedHandler(tornado.web.RequestHandler):
         session = Session()
         u = get_user(user, session)
 
+        if self.get_argument('delete', False):
+            feed = get_feed(u, self.get_argument('url'), session)
+            session.delete(feed)
+            session.commit()
+            feeds = get_feeds_by_user(u, session)
+            self.redirect('/u/' + u.name + '/' + feeds[0].url)
+            session.close()
+            return
+
         if self.get_argument('rule', False):
             feed = get_or_create_feed(u, self.get_argument('url'), session)
             feed.rule = self.get_argument('rule')
