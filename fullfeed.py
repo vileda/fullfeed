@@ -7,44 +7,9 @@ import binascii
 import feedparser
 import json
 from bs4 import BeautifulSoup as Soup
-import re
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm.exc import NoResultFound
-
-
-extraction_rules = {
-    'blog.fefe.de': 'ul li',
-    'www.spiegel.de': 'ul li',
-}
-
-domain_re = re.compile('https?://([0-9a-zA-Z.-]+)/?.*')
-
-engine = create_engine('sqlite:///:memory:', echo=True)
-
-Base = declarative_base()
-
-
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    feeds = relationship("Feed", order_by="Feed.id")
-
-
-class Feed(Base):
-    __tablename__ = 'feeds'
-    id = Column(Integer, primary_key=True)
-    url = Column(String)
-    rule = Column(String)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    user = relationship("User")
-
-
-Base.metadata.create_all(engine)
-
-Session = sessionmaker(bind=engine)
+from models import *
+from rules import *
 
 
 def extract_article(article, url, rule=None):
@@ -53,7 +18,7 @@ def extract_article(article, url, rule=None):
 
     soup = Soup(article)
     ext = soup.select(rule)
-    texts = map(lambda e: e.text, ext)
+    texts = map(lambda e: ' '.join(map(lambda c: str(c), e.contents)), ext)
     res = ''.join(texts)
 
     return res

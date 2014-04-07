@@ -15,7 +15,7 @@
 </select>
 <ul id="news">
     {% for entry in fetched_feed %}
-        <li>{{ entry['content'] }}</li>
+        <li>{% raw entry['content'] %}</li>
     {% end %}
 </ul>
 <script>
