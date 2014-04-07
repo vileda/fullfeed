@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>News</title>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+</head>
+<body>
+<h1>News</h1>
+
+<select id="feeds">
+    {% for feed in feeds %}
+      <option value="{{ feed }}">{{ feed }}</option>
+    {% end %}
+</select>
+<ul id="news"></ul>
+<script>
+    $(function() {
+        var fullfeed_user = '{{ user.name }}';
+
+        var fetch_feed = function() {
+            $.get("/p/"+$('#feeds option:selected').val())
+                .done(function(data) {
+                        $('#news').html("");
+                    $.each(data, function(i,e) {
+                       $("#news").append($("<li/>").text(e['content']));
+                    });
+                });
+        };
+        $('#feeds').on('change', fetch_feed);
+        fetch_feed();
+    });
+</script>
+</body>
+</html>
