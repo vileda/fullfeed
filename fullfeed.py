@@ -29,7 +29,7 @@ def fetch_articles(feed, rule):
         req = tornado.httpclient.HTTPRequest(
             url=e['link'],
             method="GET",
-            follow_redirects=False,
+            follow_redirects=True,
             allow_nonstandard_methods=True
         )
 
@@ -92,7 +92,7 @@ def fetch_feed(url):
     req = tornado.httpclient.HTTPRequest(
         url=url,
         method="GET",
-        follow_redirects=False,
+        follow_redirects=True,
         allow_nonstandard_methods=True
     )
 
