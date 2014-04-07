@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>News</title>
+</head>
+<body>
+<h1>News</h1>
+
+<form method="post">
+    <select id="feeds" name="url">
+    {% for feed in feeds %}
+      <option value="{{ feed }}"{% if feed == feed_url %} selected{% end %}>{{ feed }}</option>
+    {% end %}
+    </select>
+
+    {% if edit_mode %}
+    <input value="{{ feed_rule }}" type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+    {% elif feed_rule == None %}
+    <input type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+    {% else %}
+        <a href="?edit=True">{{ feed_rule }}</a>
+    {% end %}
+    <button type="submit">Fetch</button>
+</form>
+<ul id="news">
+    {% for entry in fetched_feed %}
+        <li>{% raw entry['content'] %}</li>
+    {% end %}
+</ul>
+</body>
+</html>

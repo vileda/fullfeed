@@ -2,37 +2,14 @@
 <html>
 <head>
     <title>News</title>
-    <script src="/static/jquery-1.11.0.min.js"></script>
-    <script src="/static/jquery-migrate-1.2.1.min.js"></script>
 </head>
 <body>
 <h1>News</h1>
 
-<select id="feeds">
-    {% for feed in feeds %}
-      <option value="{{ feed }}">{{ feed }}</option>
-    {% end %}
-</select>
-<ul id="news">
-    {% for entry in fetched_feed %}
-        <li>{% raw entry['content'] %}</li>
-    {% end %}
-</ul>
-<script>
-    $(function() {
-        var fullfeed_user = '{{ user.name }}';
-
-        var fetch_feed = function() {
-            $.get("/p/"+$('#feeds option:selected').val())
-                .done(function(data) {
-                        $('#news').html("");
-                    $.each(data, function(i,e) {
-                       $("#news").append($("<li/>").text(e['content']));
-                    });
-                });
-        };
-        $('#feeds').on('change', fetch_feed);
-    });
-</script>
+<form method="post">
+    <input type="text" name="user" id="user" placeholder="Username"/>
+    <input type="text" name="url" id="url" placeholder="Feed URL"/>
+    <button type="submit">Create</button>
+</form>
 </body>
 </html>
