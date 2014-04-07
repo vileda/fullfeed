@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 setup(
-    name="HelloWorld",
+    name="fullfeed",
     version="0.1",
     packages=find_packages(),
     scripts=['fullfeed.py'],
