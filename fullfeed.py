@@ -1,12 +1,31 @@
+from asyncore import loop
 import tornado.ioloop
 import tornado.web
-import tornado.httpclient
 import tornado.escape
 import feedparser
 import json
 from bs4 import BeautifulSoup as Soup
 from sqlalchemy.orm.exc import NoResultFound
 from models import *
+from utils import *
+import asyncio
+import time
+
+
+loop = asyncio.get_event_loop()
+
+cache_store = {}
+
+
+def diff_time(t1, t2):
+    return (time.mktime(t1) - time.mktime(t2)) / 60
+
+
+def cache(key, value):
+    cache_store[key] = {
+        'value': value,
+        'time': time.localtime()
+    }
 
 
 def extract_article(article, rule):
@@ -25,26 +44,21 @@ def fetch_articles(feed, rule):
 
     jsonobj = []
 
+    @asyncio.coroutine
+    def process_article(url):
+        response = fetch_url(url)
+
+        extracted = extract_article(response, rule)
+        jsonobj.append({
+            'link': url,
+            'content': extracted,
+        })
+
+    tasks = []
     for e in f['entries']:
-        req = tornado.httpclient.HTTPRequest(
-            url=e['link'],
-            method="GET",
-            follow_redirects=True,
-            allow_nonstandard_methods=True
-        )
+        tasks.append(asyncio.Task(process_article(e['link'])))
 
-        client = tornado.httpclient.HTTPClient()
-        try:
-            response = client.fetch(req)
-
-            extracted = extract_article(response.body, rule)
-            jsonobj.append({
-                'link': e['link'],
-                'content': extracted,
-            })
-        except tornado.httpclient.HTTPError as e:
-            if hasattr(e, 'response') and e.response:
-                return None
+    loop.run_until_complete(asyncio.wait(tasks))
 
     return jsonobj
 
@@ -88,22 +102,6 @@ def get_feeds_by_user(user, session):
     return feeds
 
 
-def fetch_feed(url):
-    req = tornado.httpclient.HTTPRequest(
-        url=url,
-        method="GET",
-        follow_redirects=True,
-        allow_nonstandard_methods=True
-    )
-
-    client = tornado.httpclient.HTTPClient()
-    try:
-        response = client.fetch(req)
-        return response.body
-    except tornado.httpclient.HTTPError as e:
-        return e
-
-
 class FeedHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self, user, url):
@@ -115,8 +113,13 @@ class FeedHandler(tornado.web.RequestHandler):
             url = feeds[0].url
 
         feed = get_or_create_feed(u, url, session)
-        feedxml = fetch_feed(url)
-        articles = fetch_articles(feedxml, feed.rule)
+        feedxml = fetch_url(url)
+
+        if (not url in cache_store) or (diff_time(time.localtime(), cache_store[url]['time']) > 60):
+            articles = fetch_articles(feedxml, feed.rule)
+            cache(url, articles)
+        else:
+            articles = cache_store[url]['value']
 
         edit_mode = False
         if self.get_argument('edit', False):
@@ -125,7 +128,7 @@ class FeedHandler(tornado.web.RequestHandler):
         self.render("feed.html",
                     user=u,
                     feeds=map(lambda f: f.url, feeds),
-                    fetched_feed=articles,
+                    fetched_feed=list(articles),
                     feed_rule=feed.rule,
                     feed_url=url,
                     edit_mode=edit_mode)
@@ -160,7 +163,7 @@ class ProxyHandler(tornado.web.RequestHandler):
         self.set_status(200)
         self.set_header('Content-Type', 'application/json')
         rule = self.get_query_argument('rule', None)
-        self.write(json.dumps(fetch_articles(fetch_feed(url), rule)))
+        self.write(json.dumps(fetch_articles(fetch_url(url), rule)))
         self.finish()
 
 
