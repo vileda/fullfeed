@@ -115,7 +115,7 @@ class FeedHandler(tornado.web.RequestHandler):
         feed = get_or_create_feed(u, url, session)
         feedxml = fetch_url(url)
 
-        if (not url in cache_store) or (diff_time(time.localtime(), cache_store[url]['time']) > 60):
+        if (not url in cache_store) or (diff_time(time.localtime(), cache_store[url]['time']) > 5):
             articles = fetch_articles(feedxml, feed.rule)
             cache(url, articles)
         else:
