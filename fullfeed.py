@@ -73,7 +73,7 @@ def fetch_articles(feedxml, feed):
 
     jsonobj = []
 
-    @asyncio.coroutine
+    #@asyncio.coroutine
     def process_article(url):
         response = fetch_url(url)
 
@@ -85,9 +85,10 @@ def fetch_articles(feedxml, feed):
 
     tasks = []
     for e in f['entries']:
-        tasks.append(asyncio.Task(process_article(e['link'])))
+        #tasks.append(asyncio.Task(process_article(e['link'])))
+        process_article(e['link'])
 
-    loop.run_until_complete(asyncio.wait(tasks))
+    #loop.run_until_complete(asyncio.wait(tasks))
 
     return jsonobj
 
