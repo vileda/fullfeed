@@ -83,10 +83,10 @@ def fetch_articles(feedxml, feed):
 
     tasks = []
     for e in f['entries']:
-        #tasks.append(asyncio.Task(process_article(e['link'])))
-        process_article(e['link'])
+        tasks.append(asyncio.Task(process_article(e['link'])))
+        #process_article(e['link'])
 
-    #loop.run_until_complete(asyncio.wait(tasks))
+    loop.run_until_complete(asyncio.wait(tasks))
 
     return jsonobj
 
@@ -174,10 +174,10 @@ class FeedHandler(tornado.web.RequestHandler):
             session.delete(feed)
             session.commit()
             feeds = get_feeds_by_user(u, session)
-            if len(feeds):
+            if feeds.count():
                 self.redirect('/u/' + u.name + '/' + feeds[0].url)
             else:
-                self.redirect('/u/' + u.name + '/')
+                self.redirect('/u/' + u.name)
             session.close()
             return
 
