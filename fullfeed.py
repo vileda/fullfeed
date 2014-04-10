@@ -46,8 +46,6 @@ def extract_article(article, feed):
 
     soup = Soup(article)
 
-    soup = Soup(taglist_to_string(soup.select(rule)))
-
     for er in exclude_rule:
         if re_singletag.match(er):
             _s = soup(er)
@@ -65,7 +63,7 @@ def extract_article(article, feed):
             elif _s is Tag:
                 _s.extract()
 
-    return taglist_to_string(soup)
+    return taglist_to_string(soup.select(rule))
 
 
 def fetch_articles(feedxml, feed):
