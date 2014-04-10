@@ -175,7 +175,10 @@ class FeedHandler(tornado.web.RequestHandler):
             session.delete(feed)
             session.commit()
             feeds = get_feeds_by_user(u, session)
-            self.redirect('/u/' + u.name + '/' + feeds[0].url)
+            if len(feeds):
+                self.redirect('/u/' + u.name + '/' + feeds[0].url)
+            else:
+                self.redirect('/u/' + u.name + '/')
             session.close()
             return
 
