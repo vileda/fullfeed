@@ -9,7 +9,7 @@ setup(
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
-    install_requires=['tornado', 'beautifulsoup4', 'feedparser', 'sqlalchemy'],
+    install_requires=['tornado', 'beautifulsoup4', 'feedparser', 'sqlalchemy', 'numpy'],
 
     # metadata for upload to PyPI
     author="vileda",

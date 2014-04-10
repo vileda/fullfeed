@@ -1,20 +1,23 @@
-from asyncore import loop
+import logging
 import tornado.ioloop
 import tornado.web
 import tornado.escape
 import feedparser
 import json
-from bs4 import BeautifulSoup as Soup
+from bs4 import BeautifulSoup as Soup, Tag
 from sqlalchemy.orm.exc import NoResultFound
 from models import *
 from utils import *
 import asyncio
 import time
+import re
 
 
 loop = asyncio.get_event_loop()
 
 cache_store = {}
+
+re_singletag = re.compile(r'^[a-zA-Z]+$')
 
 
 def diff_time(t1, t2):
@@ -28,19 +31,45 @@ def cache(key, value):
     }
 
 
-def extract_article(article, rule):
-    if not rule:
+def taglist_to_string(taglist):
+    return ''.join(map(lambda e: ' '.join(map(lambda c: str(c), e.contents)), taglist))
+
+
+def extract_article(article, feed):
+    if not feed.rule:
         rule = 'body'
+    else:
+        rule = feed.rule
+
+    exclude_rule = ['script'] + list(map(lambda er: er.strip(), feed.exclude_rule.split(',')))
+    exclude_rule = filter(len, exclude_rule)
+
     soup = Soup(article)
-    ext = soup.select(rule)
-    texts = map(lambda e: ' '.join(map(lambda c: str(c), e.contents)), ext)
-    res = ''.join(texts)
 
-    return res
+    soup = Soup(taglist_to_string(soup.select(rule)))
+
+    for er in exclude_rule:
+        if re_singletag.match(er):
+            _s = soup(er)
+            for s in _s:
+                s.extract()
+        else:
+            _s = soup.select(er)
+            if isinstance(_s, list):
+                for r in _s:
+                    if isinstance(r, list):
+                        for _r in r:
+                            _r.extract()
+                    else:
+                        r.extract()
+            elif _s is Tag:
+                _s.extract()
+
+    return taglist_to_string(soup)
 
 
-def fetch_articles(feed, rule):
-    f = feedparser.parse(feed)
+def fetch_articles(feedxml, feed):
+    f = feedparser.parse(feedxml)
 
     jsonobj = []
 
@@ -48,7 +77,7 @@ def fetch_articles(feed, rule):
     def process_article(url):
         response = fetch_url(url)
 
-        extracted = extract_article(response, rule)
+        extracted = extract_article(response, feed)
         jsonobj.append({
             'link': url,
             'content': extracted,
@@ -115,8 +144,9 @@ class FeedHandler(tornado.web.RequestHandler):
         feed = get_or_create_feed(u, url, session)
         feedxml = fetch_url(url)
 
-        if (not url in cache_store) or (diff_time(time.localtime(), cache_store[url]['time']) > 5):
-            articles = fetch_articles(feedxml, feed.rule)
+        if (url in cache_store) and (diff_time(time.localtime(), cache_store[url]['time']) > 5)\
+                or (not url in cache_store):
+            articles = fetch_articles(feedxml, feed)
             cache(url, articles)
         else:
             articles = cache_store[url]['value']
@@ -130,6 +160,7 @@ class FeedHandler(tornado.web.RequestHandler):
                     feeds=map(lambda f: f.url, feeds),
                     fetched_feed=list(articles),
                     feed_rule=feed.rule,
+                    feed_exclude_rule=feed.exclude_rule,
                     feed_url=url,
                     edit_mode=edit_mode)
         session.close()
@@ -151,8 +182,12 @@ class FeedHandler(tornado.web.RequestHandler):
         if self.get_argument('rule', False):
             feed = get_or_create_feed(u, self.get_argument('url'), session)
             feed.rule = self.get_argument('rule')
+            feed.exclude_rule = self.get_argument('exclude_rule')
             session.commit()
 
+        if self.get_argument('url') in cache_store.keys():
+            cache_store.pop(self.get_argument('url'))
+        
         self.redirect('/u/' + u.name + '/' + self.get_argument('url'))
         session.close()
 

@@ -8,6 +8,11 @@
 <body>
 <h1>News</h1>
 
+<form method="post" action="?delete=True">
+    <input value="{{ feed_url }}" type="hidden" name="url"/>
+    <button type="submit">Delete!</button>
+</form>
+
 <form method="post">
     <select id="feeds" name="url">
     {% for feed in feeds %}
@@ -16,18 +21,17 @@
     </select>
 
     {% if edit_mode %}
-    <input value="{{ feed_rule }}" type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+        <input value="{{ feed_rule }}" type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+        <input value="{{ feed_exclude_rule }}" type="text" name="exclude_rule" id="exclude_rule" placeholder="Exclude Rule"/>
     {% elif feed_rule == None %}
-    <input type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+        <input type="text" name="rule" id="rule" placeholder="Rule (CSS Selector)"/>
+        <input type="text" name="exclude_rule" id="exclude_rule" placeholder="Exclude Rule"/>
     {% else %}
-        <a href="?edit=True">{{ feed_rule }}</a>
+        <a href="?edit=True">{{ feed_rule }} - {{ feed_exclude_rule }}</a>
     {% end %}
     <button type="submit">Fetch</button>
 </form>
-<form method="post" action="?delete=True">
-    <input value="{{ feed_url }}" type="hidden" name="url"/>
-    <button type="submit">Delete!</button>
-</form>
+
 <ul id="news">
     {% for entry in fetched_feed %}
         <li>{% raw entry['content'] %}</li>

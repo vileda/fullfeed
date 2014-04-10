@@ -21,6 +21,7 @@ class Feed(Base):
     id = Column(Integer, primary_key=True)
     url = Column(String)
     rule = Column(String)
+    exclude_rule = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
 
