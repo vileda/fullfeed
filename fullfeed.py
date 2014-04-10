@@ -41,7 +41,10 @@ def extract_article(article, feed):
     else:
         rule = feed.rule
 
-    exclude_rule = ['script'] + list(map(lambda er: er.strip(), feed.exclude_rule.split(',')))
+    exclude_rule = ['script']
+    if feed.exclude_rule:
+        exclude_rule += list(map(lambda er: er.strip(), feed.exclude_rule.split(',')))
+
     exclude_rule = filter(len, exclude_rule)
 
     soup = Soup(article)
@@ -71,7 +74,7 @@ def fetch_articles(feedxml, feed):
 
     jsonobj = []
 
-    #@asyncio.coroutine
+    @asyncio.coroutine
     def process_article(url):
         response = fetch_url(url)
 
