@@ -187,7 +187,7 @@ class FeedHandler(tornado.web.RequestHandler):
 
         if self.get_argument('url') in cache_store.keys():
             cache_store.pop(self.get_argument('url'))
-        
+
         self.redirect('/u/' + u.name + '/' + self.get_argument('url'))
         session.close()
 
