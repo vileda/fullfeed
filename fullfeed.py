@@ -11,13 +11,24 @@ from utils import *
 import asyncio
 import time
 import re
-
+from urllib.parse import urlparse
 
 loop = asyncio.get_event_loop()
 
 cache_store = {}
 
 re_singletag = re.compile(r'^[a-zA-Z]+$')
+re_domain = re.compile(r'(https?://[a-zA-Z0-9.-]+)')
+re_atag = re.compile(r'\bhref\s*=\s*("[^"]*"|\'[^\']*\'|[^"\'<>=\s]+)')
+
+
+def fix_urls(document, base_url):
+    soup = Soup(document)
+    for tag in soup('a'):
+        if tag['href'].startswith('/'):
+            tag['href'] = base_url + tag['href']
+
+    return soup.decode()
 
 
 def diff_time(t1, t2):
@@ -66,7 +77,9 @@ def extract_article(article, feed):
             elif _s is Tag:
                 _s.extract()
 
-    return taglist_to_string(soup.select(rule))
+    html = taglist_to_string(soup.select(rule))
+    domain = re_domain.match(feed.url).group(0)
+    return fix_urls(html, domain)
 
 
 def fetch_articles(feedxml, feed):
